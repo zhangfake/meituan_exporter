@@ -54,6 +54,8 @@ layui.use(function () {
     return `<option value="${item.id}" ${selected}>${item.poiName}</option>`
   })
   const startDownloadThread = async field => {
+    layer.msg("正在导出,请勿关闭页面")
+    layer.open({ type: 3 })
     // 存储当前数据
     config = field
     field.start_time = formatDateTime(Date.now())
@@ -62,6 +64,7 @@ layui.use(function () {
     let totalItem = 1, page = 1; pageSize = 100;
     let products = []
     do {
+      layer.msg("正在读取第" + page + "页数据")
       let pageData = await fetch("https://shangoue.meituan.com/reuse/sc/product/retail/r/searchListPage", {
         "headers": {
           "Content-Type": "application/x-www-form-urlencoded"
@@ -72,7 +75,7 @@ layui.use(function () {
       products = products.concat(pageData.data.productList)
       totalItem = pageData.data.totalCount
       page++
-      console.log(page,products)
+      console.log(page, products)
       if (page > Math.ceil(totalItem / pageSize)) {
         break;
       }
@@ -84,8 +87,8 @@ layui.use(function () {
     let csv = products.map(item => {
       return {
         "美团ID": item.id || '',
-        "美团名称": item.name || '', 
-        "美团类目": item.categoryNamePath || '', 
+        "美团名称": item.name || '',
+        "美团类目": item.categoryNamePath || '',
         "美团商品原始数据": JSON.stringify(item)
       }
     })
@@ -95,6 +98,7 @@ layui.use(function () {
     XLSX.utils.book_append_sheet(workbook, worksheet, "Sheet1");
     // 将工作簿保存为 Excel 文件
     XLSX.writeFile(workbook, "data.xlsx");
+    layer.closeAll('loading')
   }
 
   const button = document.createElement('div')
