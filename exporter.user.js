@@ -73,9 +73,9 @@ layui.use(function () {
       totalItem = pageData.data.totalCount
       page++
       console.log(page,products)
-      // if (page > Math.ceil(totalItem / pageSize)) {
+      if (page > Math.ceil(totalItem / pageSize)) {
         break;
-      // }
+      }
     } while (true)
     if (!products.length) {
       layer.msg('没有数据可以导出', { icon: 1 });
