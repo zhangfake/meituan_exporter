@@ -47,7 +47,7 @@ layui.use(function () {
   const laydate = layui.laydate;
   const form = layui.form;
   const points = JSON.parse(localStorage.localAllPoiList)
-  let config = JSON.parse(GM_getValue('config', '{"start_time":"", "store_id": ""}'))
+  let config = JSON.parse(GM_getValue('config', '{"start_time":"", "store_id": "", "max_page": "", "state": 0}'))
   const storeOptions = points.map(item => {
     const selected = item.id == config.store_id ? 'selected' : ''
     return `<option value="${item.id}" ${selected}>${item.poiName}</option>`
