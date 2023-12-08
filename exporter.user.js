@@ -10,7 +10,6 @@
 // @description 2023/6/19 18:18:00
 // @run-at      document-idle
 // @require     https://unpkg.com/layui@2.8.7/dist/layui.js
-// @require     https://unpkg.com/xlsx/dist/xlsx.full.min.js
 // @downloadURL https://raw.githubusercontent.com/zhangfake/meituan_exporter/main/exportor.js
 // ==/UserScript==
 
@@ -69,7 +68,7 @@ layui.use(function () {
         "headers": {
           "Content-Type": "application/x-www-form-urlencoded"
         },
-        "body": `wmPoiId=${config.store_id}&pageNum=${page}&pageSize=${pageSize}&needTag=0&name=&brandId=0&tagId=0&searchWord=&state=0&saleStatus=0&limitSale=0&needCombinationSpu=2&noStockAutoClear=-1`,
+        "body": `wmPoiId=${config.store_id}&pageNum=${page}&pageSize=${pageSize}&needTag=0&name=&brandId=0&tagId=0&searchWord=&state=${config.state}&saleStatus=0&limitSale=0&needCombinationSpu=2&noStockAutoClear=-1`,
         "method": "POST",
       }).then(e => e.json())
       products = products.concat(pageData.data.productList)
@@ -112,12 +111,12 @@ layui.use(function () {
       }
       return finalVal + '\n';
     };
-  
+
     var csvFile = '';
     for (var i = 0; i < rows.length; i++) {
       csvFile += processRow(rows[i]);
     }
-  
+
     var blob = new Blob([csvFile], { type: 'text/csv;charset=utf-8;' });
     if (navigator.msSaveBlob) {
       navigator.msSaveBlob(blob, filename);
@@ -168,14 +167,28 @@ layui.use(function () {
       content: `
 <div style="padding: 16px;">
   <form class="layui-form" action="">
-    <div class="layui-form-item">
-      <label class="layui-form-label">门店</label>
-      <div class="layui-input-block">
-        <select name="store_id" style="display:block; width: 100%; height: 32px;">
-          ${storeOptions}
-        </select>
-      </div>
-    </div> 
+  <div class="layui-form-item">
+    <label class="layui-form-label">门店</label>
+    <div class="layui-input-block">
+      <select name="store_id" style="display:block; width: 100%; height: 32px;">
+        ${storeOptions}
+      </select>
+    </div>
+  </div> 
+  <div class="layui-form-item">
+    <label class="layui-form-label">商品状态</label>
+    <div class="layui-input-block">
+      <select name="state" style="display:block; width: 100%; height: 32px;">
+      <option value="0" selected>全部</option>
+      <option value="1" >售卖中</option>
+      <option value="3" >已售罄</option>
+      <option value="2" >已下架</option>
+      <option value="21" >库存不足</option>
+      <option value="29" >限时可售</option>
+      <option value="30" >组合商品</option>
+      </select>
+    </div>
+  </div> 
      <!--div class="layui-form-item">
       <div>开始时间</div>
        <input type="text" class="layui-input" value="${config.end_time}" name="start_time" id="ID-laydate-type-datetime" placeholder="yyyy-MM-dd HH:mm:ss">
