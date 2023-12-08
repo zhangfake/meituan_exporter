@@ -10,6 +10,7 @@
 // @description 2023/6/19 18:18:00
 // @run-at      document-idle
 // @require     https://unpkg.com/layui@2.8.7/dist/layui.js
+// @require     https://unpkg.com/xlsx/dist/xlsx.full.min.js
 // @downloadURL https://raw.githubusercontent.com/zhangfake/meituan_exporter/main/exportor.js
 // ==/UserScript==
 
@@ -47,7 +48,6 @@ layui.use(function () {
   const form = layui.form;
   const points = JSON.parse(localStorage.localAllPoiList)
   let config = JSON.parse(GM_getValue('config', '{"start_time":"", "store_id": ""}'))
-
   const storeOptions = points.map(item => {
     const selected = item.id == config.store_id ? 'selected' : ''
     return `<option value="${item.id}" ${selected}>${item.poiName}</option>`
@@ -60,10 +60,9 @@ layui.use(function () {
     field.start_time = formatDateTime(Date.now())
     GM_setValue("config", JSON.stringify(field))
 
-    let totalItem = 1, page = 1; pageSize = 100;
+    let totalItem = 1, page = 1, pageSize = 100, maxPage = config.max_page || 0;
     let products = []
     do {
-      layer.msg("正在读取第" + page + "页数据")
       let pageData = await fetch("https://shangoue.meituan.com/reuse/sc/product/retail/r/searchListPage", {
         "headers": {
           "Content-Type": "application/x-www-form-urlencoded"
@@ -71,10 +70,25 @@ layui.use(function () {
         "body": `wmPoiId=${config.store_id}&pageNum=${page}&pageSize=${pageSize}&needTag=0&name=&brandId=0&tagId=0&searchWord=&state=${config.state}&saleStatus=0&limitSale=0&needCombinationSpu=2&noStockAutoClear=-1`,
         "method": "POST",
       }).then(e => e.json())
+      totalItem = maxPage ? maxPage * pageSize : pageData.data.totalCount
+      for (let i = 0; i < pageData.data.productList.length; i++) {
+        layer.msg("正在读取 " + (products.length + i) + "/" + totalItem)
+        const product = pageData.data.productList[i]
+        try {
+          const itemData = await fetch(`https://shangoue.meituan.com/reuse/sc/product/shangou/r/detailProductAndMedicine?spuId=${product.id}&wmPoiId=${config.store_id}&yodaReady=h5&csecplatform=4&csecversion=2.3.1`, {
+            "referrer": `https://shangoue.meituan.com/reuse/sc/product/views/product/edit?spuId=${product.id}&wmPoiId=${config.store_id}&from=single`,
+            "method": "GET",
+          }).then(e => e.json())
+          pageData.data.productList[i] = itemData.data
+        } catch (e) {
+
+        }
+      }
       products = products.concat(pageData.data.productList)
-      totalItem = pageData.data.totalCount
       page++
-      console.log(page, products)
+      if (maxPage > 0 && page > maxPage) {
+        break;
+      }
       if (page > Math.ceil(totalItem / pageSize)) {
         break;
       }
@@ -150,11 +164,11 @@ layui.use(function () {
       id: 'ID-demo-layer-direction-l',
       success: function () {
         layui.use('form', function () {
-          laydate.render({
-            elem: '#ID-laydate-type-datetime',
-            type: 'datetime',
-            fullPanel: true // 2.8+
-          });
+          // laydate.render({
+          //   elem: '#ID-laydate-type-datetime',
+          //   type: 'datetime',
+          //   fullPanel: true // 2.8+
+          // });
 
           form.on('submit(demo1)', function (data) {
             var field = data.field; // 获取表单字段值
@@ -179,16 +193,22 @@ layui.use(function () {
     <label class="layui-form-label">商品状态</label>
     <div class="layui-input-block">
       <select name="state" style="display:block; width: 100%; height: 32px;">
-      <option value="0" selected>全部</option>
-      <option value="1" >售卖中</option>
-      <option value="3" >已售罄</option>
-      <option value="2" >已下架</option>
-      <option value="21" >库存不足</option>
-      <option value="29" >限时可售</option>
-      <option value="30" >组合商品</option>
+      <option value="0" ${config.state == 0 ? 'selected' : ''}>全部</option>
+      <option value="1" ${config.state == 1 ? 'selected' : ''}>售卖中</option>
+      <option value="3" ${config.state == 3 ? 'selected' : ''}>已售罄</option>
+      <option value="2" ${config.state == 2 ? 'selected' : ''}>已下架</option>
+      <option value="21" ${config.state == 21 ? 'selected' : ''}>库存不足</option>
+      <option value="29" ${config.state == 29 ? 'selected' : ''}>限时可售</option>
+      <option value="30" ${config.state == 30 ? 'selected' : ''}>组合商品</option>
       </select>
     </div>
   </div> 
+  <div class="layui-form-item">
+  <label class="layui-form-label">前几页</label>
+   <div class="layui-input-block">
+    <input type="text" name="max_page" value="${config.max_page}" placeholder="不填默认全部" style="display:block; width: 100%; height: 32px;">
+    </div>
+ </div>
      <!--div class="layui-form-item">
       <div>开始时间</div>
        <input type="text" class="layui-input" value="${config.end_time}" name="start_time" id="ID-laydate-type-datetime" placeholder="yyyy-MM-dd HH:mm:ss">
